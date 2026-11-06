@@ -16,15 +16,33 @@ class MainActivity : Activity() {
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(48, 48, 48, 48) }
 
         fun label(t: String) = TextView(this).apply { text = t; textSize = 16f; setPadding(0, 24, 0, 8) }
-        fun num(key: String, def: Int) = EditText(this).apply {
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
-            setText(sp.getInt(key, def).toString())
-            addTextChangedListener(object : android.text.TextWatcher {
-                override fun afterTextChanged(s: android.text.Editable?) {
-                    sp.edit().putInt(key, s.toString().toIntOrNull() ?: def).apply()
+
+        // حد أقصى 5 دقائق: يمكن تخفيضه فقط ولا يمكن رفعه
+        fun limitRow(title: String, key: String) {
+            root.addView(label(title))
+            val cur = minOf(sp.getInt(key, 5), 5)
+            val et = EditText(this).apply {
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                setText(cur.toString())
+            }
+            root.addView(et)
+            root.addView(Button(this).apply {
+                text = "حفظ"
+                setOnClickListener {
+                    val now = minOf(sp.getInt(key, 5), 5)
+                    val v = et.text.toString().toIntOrNull()
+                    when {
+                        v == null || v < 1 -> Toast.makeText(context, "أدخل رقماً من 1 فأكثر", Toast.LENGTH_SHORT).show()
+                        v > now -> {
+                            et.setText(now.toString())
+                            Toast.makeText(context, "لا يمكن رفع الحد. الحد الحالي $now د", Toast.LENGTH_LONG).show()
+                        }
+                        else -> {
+                            sp.edit().putInt(key, v).apply()
+                            Toast.makeText(context, "تم الحفظ: $v د (لا يمكن رفعه لاحقاً)", Toast.LENGTH_LONG).show()
+                        }
+                    }
                 }
-                override fun beforeTextChanged(a: CharSequence?, x: Int, y: Int, z: Int) {}
-                override fun onTextChanged(a: CharSequence?, x: Int, y: Int, z: Int) {}
             })
         }
 
@@ -37,8 +55,9 @@ class MainActivity : Activity() {
             isChecked = sp.getBoolean("allowShorts", false)
             setOnCheckedChangeListener { _, v -> sp.edit().putBoolean("allowShorts", v).apply() }
         })
-        root.addView(label("الحد اليومي لـ Shorts (دقائق)")); root.addView(num("shortsMin", 5))
-        root.addView(label("الحد اليومي لفيسبوك (دقائق)")); root.addView(num("fbMin", 5))
+        limitRow("الحد اليومي لـ Shorts (أقصاه 5 دقائق)", "shortsMin")
+        limitRow("الحد اليومي لفيسبوك (أقصاه 5 دقائق)", "fbMin")
+        root.addView(label("ريلز فيسبوك: ممنوع دائماً"))
 
         val stats = TextView(this).apply { textSize = 15f; setPadding(0, 32, 0, 0); gravity = Gravity.START }
         root.addView(stats)
