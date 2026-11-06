@@ -43,6 +43,22 @@ class GuardService : AccessibilityService() {
             .any { root.findAccessibilityNodeInfosByViewId("$YT:id/$it").isNotEmpty() }
     }
 
+    // كشف Reels في فيسبوك: تبويب Reels المحدد أو عناصر مشغّل Reels
+    private fun isFbReels(root: AccessibilityNodeInfo?): Boolean {
+        root ?: return false
+        var count = 0
+        fun walk(n: AccessibilityNodeInfo?, depth: Int): Boolean {
+            if (n == null || depth > 14 || count++ > 500) return false
+            val id = n.viewIdResourceName?.lowercase() ?: ""
+            val d = n.contentDescription?.toString()?.lowercase() ?: ""
+            if (id.contains("reels_viewer") || id.contains("reel_viewer") || id.contains("reels_player")) return true
+            if (n.isSelected && (d.startsWith("reels") || d.startsWith("ريلز"))) return true
+            for (i in 0 until n.childCount) if (walk(n.getChild(i), depth + 1)) return true
+            return false
+        }
+        return walk(root, 0)
+    }
+
     private fun check() {
         if (!getSystemService(PowerManager::class.java).isInteractive) return
         val sp = Store.p(this)
@@ -52,7 +68,7 @@ class GuardService : AccessibilityService() {
                 if (isShorts(rootInActiveWindow)) {
                     Store.add(this, "shorts", STEP)
                     val allowed = sp.getBoolean("allowShorts", false)
-                    val limitSec = sp.getInt("shortsMin", 5) * 60
+                    val limitSec = minOf(sp.getInt("shortsMin", 5), 5) * 60
                     if (!allowed || Store.get(this, "shorts") > limitSec) kick(
                         if (allowed) "انتهى وقت Shorts اليوم" else "Shorts ممنوع"
                     )
@@ -63,7 +79,8 @@ class GuardService : AccessibilityService() {
             }
             FB -> {
                 Store.add(this, "fb", STEP)
-                if (Store.get(this, "fb") > sp.getInt("fbMin", 5) * 60) kick("انتهى وقت فيسبوك اليوم")
+                if (isFbReels(rootInActiveWindow)) kick("ريلز فيسبوك ممنوع")
+                else if (Store.get(this, "fb") > minOf(sp.getInt("fbMin", 5), 5) * 60) kick("انتهى وقت فيسبوك اليوم")
             }
             else -> return
         }
