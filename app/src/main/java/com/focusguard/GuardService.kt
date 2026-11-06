@@ -24,21 +24,26 @@ object Store {
 class GuardService : AccessibilityService() {
     private var pkg = ""
     private val h = Handler(Looper.getMainLooper())
-    private val STEP = 2
     private val seen = LinkedHashSet<String>()
     private var fbHits = 0
+    private var last = 0L
+    private var acc = 0L
 
     private val tick = Runnable { check() }
 
     override fun onInterrupt() {}
 
+    private fun period(): Long = if (pkg in FBS) 600L else 1000L
+
     override fun onAccessibilityEvent(e: AccessibilityEvent) {
         val p = e.packageName?.toString() ?: return
         if (p.contains("systemui") || p.contains("inputmethod") || p.contains("keyboard")) return
-        if (p != pkg) fbHits = 0
+        if (p != pkg) {
+            fbHits = 0; acc = 0; last = SystemClock.elapsedRealtime()
+        }
         pkg = p
         h.removeCallbacks(tick)
-        if (p == YT || p in FBS) h.postDelayed(tick, (STEP * 1000).toLong())
+        if (p == YT || p in FBS) h.postDelayed(tick, 300L)
     }
 
     private fun isShorts(root: AccessibilityNodeInfo?): Boolean {
@@ -51,7 +56,7 @@ class GuardService : AccessibilityService() {
     private fun isFbReels(root: AccessibilityNodeInfo?): Boolean {
         root ?: return false
         val dm = resources.displayMetrics
-        if (dm.heightPixels < dm.widthPixels) return false // وضع أفقي: ليس ريلز
+        if (dm.heightPixels < dm.widthPixels) return false
         val r = Rect()
         var count = 0
         var found = false
@@ -76,33 +81,46 @@ class GuardService : AccessibilityService() {
     private fun check() {
         if (!getSystemService(PowerManager::class.java).isInteractive) return
         val sp = Store.p(this)
+
+        // حساب الوقت الحقيقي المنقضي
+        val now = SystemClock.elapsedRealtime()
+        acc += minOf(now - last, 2000L)
+        last = now
+        val secs = (acc / 1000).toInt()
+        acc %= 1000
+
         when (pkg) {
             YT -> {
-                Store.add(this, "yt", STEP)
+                if (secs > 0) Store.add(this, "yt", secs)
                 if (isShorts(rootInActiveWindow)) {
-                    Store.add(this, "shorts", STEP)
+                    if (secs > 0) Store.add(this, "shorts", secs)
                     val allowed = sp.getBoolean("allowShorts", false)
                     val limitSec = minOf(sp.getInt("shortsMin", 5), 5) * 60
-                    if (!allowed || Store.get(this, "shorts") > limitSec) kick(
-                        if (allowed) "انتهى وقت Shorts اليوم" else "Shorts ممنوع"
-                    )
+                    if (!allowed || Store.get(this, "shorts") > limitSec) {
+                        kick(if (allowed) "انتهى وقت Shorts اليوم" else "Shorts ممنوع")
+                        return
+                    }
                 }
                 if (Store.get(this, "yt") >= 3600 * (Store.get(this, "ytAsked") + 1)) {
                     Store.add(this, "ytAsked"); ask()
                 }
             }
             in FBS -> {
-                Store.add(this, "fb", STEP)
+                if (secs > 0) Store.add(this, "fb", secs)
                 if (isFbReels(rootInActiveWindow)) fbHits++ else fbHits = 0
-                if (fbHits >= 2) { fbHits = 0; kick("ريلز فيسبوك ممنوع") }
-                else if (Store.get(this, "fb") > minOf(sp.getInt("fbMin", 5), 5) * 60) kick("انتهى وقت فيسبوك اليوم")
+                if (fbHits >= 2) { kick("ريلز فيسبوك ممنوع"); return }
+                if (Store.get(this, "fb") > minOf(sp.getInt("fbMin", 5), 5) * 60) {
+                    kick("انتهى وقت فيسبوك اليوم"); return
+                }
             }
             else -> return
         }
-        h.postDelayed(tick, (STEP * 1000).toLong())
+        h.postDelayed(tick, period())
     }
 
     private fun kick(msg: String) {
+        fbHits = 0
+        pkg = ""
         performGlobalAction(GLOBAL_ACTION_HOME)
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
     }
