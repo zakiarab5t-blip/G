@@ -26,6 +26,7 @@ class GuardService : AccessibilityService() {
     private val h = Handler(Looper.getMainLooper())
     private val STEP = 2
     private val seen = LinkedHashSet<String>()
+    private var fbHits = 0
 
     private val tick = Runnable { check() }
 
@@ -34,6 +35,7 @@ class GuardService : AccessibilityService() {
     override fun onAccessibilityEvent(e: AccessibilityEvent) {
         val p = e.packageName?.toString() ?: return
         if (p.contains("systemui") || p.contains("inputmethod") || p.contains("keyboard")) return
+        if (p != pkg) fbHits = 0
         pkg = p
         h.removeCallbacks(tick)
         if (p == YT || p in FBS) h.postDelayed(tick, (STEP * 1000).toLong())
@@ -45,10 +47,11 @@ class GuardService : AccessibilityService() {
             .any { root.findAccessibilityNodeInfosByViewId("$YT:id/$it").isNotEmpty() }
     }
 
-    // كشف Reels في فيسبوك: عنصر باسم ريلز يملأ أكثر من 60% من الشاشة، أو تبويب Reels محدد
+    // ريلز فيسبوك: عنصر باسم ريلز يملأ الشاشة تقريباً (طولاً وعرضاً)
     private fun isFbReels(root: AccessibilityNodeInfo?): Boolean {
         root ?: return false
-        val screenH = resources.displayMetrics.heightPixels
+        val dm = resources.displayMetrics
+        if (dm.heightPixels < dm.widthPixels) return false // وضع أفقي: ليس ريلز
         val r = Rect()
         var count = 0
         var found = false
@@ -56,13 +59,12 @@ class GuardService : AccessibilityService() {
             if (n == null || depth > 20 || count++ > 800 || found) return
             val id = n.viewIdResourceName?.lowercase() ?: ""
             val d = n.contentDescription?.toString()?.lowercase() ?: ""
-            val isReelNode = id.contains("reel") || d.contains("reel") || d.contains("ريل")
-            if (isReelNode) {
+            if (id.contains("reel") || d.contains("reel") || d.contains("ريل")) {
                 n.getBoundsInScreen(r)
-                val hgt = r.height()
-                if (seen.size < 15) seen.add("${id.substringAfter(":id/")}|${d.take(25)}|h=${hgt * 100 / screenH}%")
-                if (n.isSelected && (d.startsWith("reel") || d.startsWith("ريل"))) found = true
-                else if (n.isVisibleToUser && hgt > screenH * 0.6) found = true
+                val hp = r.height() * 100 / dm.heightPixels
+                val wp = r.width() * 100 / dm.widthPixels
+                if (seen.size < 15) seen.add("${id.substringAfter(":id/")}|${d.take(25)}|h=$hp% w=$wp%")
+                if (n.isVisibleToUser && hp >= 80 && wp >= 95) found = true
             }
             for (i in 0 until n.childCount) walk(n.getChild(i), depth + 1)
         }
@@ -91,7 +93,8 @@ class GuardService : AccessibilityService() {
             }
             in FBS -> {
                 Store.add(this, "fb", STEP)
-                if (isFbReels(rootInActiveWindow)) kick("ريلز فيسبوك ممنوع")
+                if (isFbReels(rootInActiveWindow)) fbHits++ else fbHits = 0
+                if (fbHits >= 2) { fbHits = 0; kick("ريلز فيسبوك ممنوع") }
                 else if (Store.get(this, "fb") > minOf(sp.getInt("fbMin", 5), 5) * 60) kick("انتهى وقت فيسبوك اليوم")
             }
             else -> return
