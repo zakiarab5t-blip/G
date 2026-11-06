@@ -17,7 +17,6 @@ class MainActivity : Activity() {
 
         fun label(t: String) = TextView(this).apply { text = t; textSize = 16f; setPadding(0, 24, 0, 8) }
 
-        // حد أقصى 5 دقائق: يمكن تخفيضه فقط ولا يمكن رفعه
         fun limitRow(title: String, key: String) {
             root.addView(label(title))
             val cur = minOf(sp.getInt(key, 5), 5)
@@ -59,7 +58,10 @@ class MainActivity : Activity() {
         limitRow("الحد اليومي لفيسبوك (أقصاه 5 دقائق)", "fbMin")
         root.addView(label("ريلز فيسبوك: ممنوع دائماً"))
 
-        val stats = TextView(this).apply { textSize = 15f; setPadding(0, 32, 0, 0); gravity = Gravity.START }
+        val stats = TextView(this).apply {
+            textSize = 15f; setPadding(0, 32, 0, 0); gravity = Gravity.START
+            setTextIsSelectable(true)
+        }
         root.addView(stats)
         root.addView(Button(this).apply {
             text = "تحديث الإحصائيات"
@@ -67,7 +69,8 @@ class MainActivity : Activity() {
                 stats.text = "يوتيوب: ${Store.get(context, "yt") / 60} د\n" +
                     "Shorts: ${Store.get(context, "shorts") / 60} د\n" +
                     "فيسبوك: ${Store.get(context, "fb") / 60} د\n" +
-                    "أجبت «أدرس»: ${Store.get(context, "studyAnswers")} مرة | «أشاهد»: ${Store.get(context, "watchAnswers")} مرة"
+                    "أجبت «أدرس»: ${Store.get(context, "studyAnswers")} مرة | «أشاهد»: ${Store.get(context, "watchAnswers")} مرة\n\n" +
+                    "تشخيص فيسبوك:\n" + sp.getString("fbDump", "لا شيء بعد")
             }
         })
         setContentView(ScrollView(this).apply { addView(root) })
