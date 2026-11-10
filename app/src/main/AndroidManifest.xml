@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- يسمح بقراءة أيقونات يوتيوب وفيسبوك من الهاتف لعرضها في الواجهة -->
+    <queries>
+        <package android:name="com.google.android.youtube" />
+        <package android:name="com.facebook.katana" />
+        <package android:name="com.facebook.lite" />
+    </queries>
     <application
         android:label="FocusGuard"
         android:icon="@mipmap/ic_launcher"
