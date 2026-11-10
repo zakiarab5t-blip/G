@@ -4,6 +4,7 @@
     <application
         android:label="FocusGuard"
         android:icon="@mipmap/ic_launcher"
+                android:supportsRtl="true"
         android:roundIcon="@mipmap/ic_launcher"
         android:theme="@android:style/Theme.Material.Light">
         <activity android:name=".MainActivity" android:exported="true">
