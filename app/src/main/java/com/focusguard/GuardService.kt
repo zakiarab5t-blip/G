@@ -75,6 +75,7 @@ class GuardService : AccessibilityService() {
 
     private fun check() {
         if (!getSystemService(PowerManager::class.java).isInteractive) return
+        if (!Store.p(this).getBoolean("enabled", true)) return
         val sp = Store.p(this)
         when (pkg) {
             YT -> {
