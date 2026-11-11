@@ -1,15 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- الدرع الذهبي الخارجي -->
+    <path android:pathData="M54,26 L76,34 L76,54 C76,69 66,79 54,85 C42,79 32,69 32,54 L32,34 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="32"
+                android:startY="26"
+                android:endX="76"
+                android:endY="85"
+                android:type="linear">
+                <item android:offset="0" android:color="#FFF8E7A8" />
+                <item android:offset="0.5" android:color="#FFD4AF55" />
+                <item android:offset="1" android:color="#FF8F6B1E" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- الدرع الداخلي الزمردي -->
+    <path android:pathData="M54,32 L70,38 L70,54 C70,65 62,73 54,78 C46,73 38,65 38,54 L38,38 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="54"
+                android:startY="32"
+                android:endX="54"
+                android:endY="78"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF0E5A4D" />
+                <item android:offset="1" android:color="#FF042620" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- علامة الصح الذهبية -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,24 L76,32 L76,52 C76,68 66,78 54,84 C42,78 32,68 32,52 L32,32 Z" />
-    <path
-        android:strokeColor="#0F766E"
-        android:strokeWidth="5"
+        android:pathData="M45,55 L52,62 L64,47"
+        android:strokeWidth="4.5"
         android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M44,54 L52,62 L66,44" />
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="45"
+                android:startY="47"
+                android:endX="64"
+                android:endY="62"
+                android:type="linear">
+                <item android:offset="0" android:color="#FFF8E7A8" />
+                <item android:offset="1" android:color="#FFD4AF55" />
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>

@@ -21,6 +21,10 @@ object Store {
     fun set(c: Context, n: String, v: Int) = p(c).edit().putInt(k(n), v).apply()
 }
 
+/** نص بلغة التطبيق المختارة (عربي افتراضياً). */
+fun tr(c: Context, ar: String, en: String) =
+    if (Store.p(c).getString("lang", "ar") == "en") en else ar
+
 class GuardService : AccessibilityService() {
     private var pkg = ""
     private val h = Handler(Looper.getMainLooper())
@@ -85,7 +89,8 @@ class GuardService : AccessibilityService() {
                     val allowed = sp.getBoolean("allowShorts", false)
                     val limitSec = minOf(sp.getInt("shortsMin", 5), 5) * 60
                     if (!allowed || Store.get(this, "shorts") > limitSec) kick(
-                        if (allowed) "انتهى وقت Shorts اليوم" else "Shorts ممنوع"
+                        if (allowed) tr(this, "انتهى وقت Shorts اليوم", "Today's Shorts time is up")
+                        else tr(this, "Shorts ممنوع", "Shorts are blocked")
                     )
                 }
                 if (Store.get(this, "yt") >= 3600 * (Store.get(this, "ytAsked") + 1)) {
@@ -95,8 +100,8 @@ class GuardService : AccessibilityService() {
             in FBS -> {
                 Store.add(this, "fb", STEP)
                 if (isFbReels(rootInActiveWindow)) fbHits++ else fbHits = 0
-                if (fbHits >= 2) { fbHits = 0; kick("ريلز فيسبوك ممنوع") }
-                else if (Store.get(this, "fb") > minOf(sp.getInt("fbMin", 5), 5) * 60) kick("انتهى وقت فيسبوك اليوم")
+                if (fbHits >= 2) { fbHits = 0; kick(tr(this, "ريلز فيسبوك ممنوع", "Facebook Reels are blocked")) }
+                else if (Store.get(this, "fb") > minOf(sp.getInt("fbMin", 5), 5) * 60) kick(tr(this, "انتهى وقت فيسبوك اليوم", "Today's Facebook time is up"))
             }
             else -> return
         }
@@ -121,10 +126,10 @@ class GuardService : AccessibilityService() {
         ).build()
         val n = Notification.Builder(this, "g")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("ساعة على يوتيوب ⏰")
-            .setContentText("هل تدرس أم تشاهد؟")
-            .addAction(act("study", "أدرس 📚"))
-            .addAction(act("watch", "أشاهد 🎬"))
+            .setContentTitle(tr(this, "ساعة على يوتيوب ⏰", "One hour on YouTube ⏰"))
+            .setContentText(tr(this, "هل تدرس أم تشاهد؟", "Studying or watching?"))
+            .addAction(act("study", tr(this, "أدرس 📚", "Studying 📚")))
+            .addAction(act("watch", tr(this, "أشاهد 🎬", "Watching 🎬")))
             .setAutoCancel(true).build()
         nm.notify(1, n)
     }
@@ -136,10 +141,10 @@ class AnswerReceiver : BroadcastReceiver() {
         nm.cancel(1)
         if (i.getStringExtra("ans") == "watch") {
             Store.add(c, "watchAnswers")
-            Toast.makeText(c, "حسناً، خذ استراحة وارجع لأهدافك 💪", Toast.LENGTH_LONG).show()
+            Toast.makeText(c, tr(c, "حسناً، خذ استراحة وارجع لأهدافك 💪", "Okay, take a break and get back to your goals 💪"), Toast.LENGTH_LONG).show()
         } else {
             Store.add(c, "studyAnswers")
-            Toast.makeText(c, "بالتوفيق في الدراسة 📚", Toast.LENGTH_LONG).show()
+            Toast.makeText(c, tr(c, "بالتوفيق في الدراسة 📚", "Good luck studying 📚"), Toast.LENGTH_LONG).show()
         }
     }
 }
